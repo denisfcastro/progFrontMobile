@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:projeto_modelo_20251/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences/util/legacy_to_async_migration_util.dart';
 import 'package:signals/signals.dart';
 import 'package:signals/signals_flutter.dart';
 import 'package:routefly/routefly.dart';
@@ -14,9 +16,44 @@ class AppPage extends StatefulWidget {
 
 class _AppPageState extends State<AppPage> with SignalsMixin {
   late final Signal<int> counter = this.createSignal(0);
+  final Future<SharedPreferencesWithCache> _prefs =
+  SharedPreferencesWithCache.create(
+      cacheOptions: const SharedPreferencesWithCacheOptions(
+        // This cache will only accept the key 'counter'.
+          allowList: <String>{'counter'}));
 
   void _incrementCounter() {
     counter.value++;
+  }
+
+
+  Future<void> _migratePreferences() async {
+    // #docregion migrate
+    const SharedPreferencesOptions sharedPreferencesOptions =
+    SharedPreferencesOptions();
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await migrateLegacySharedPreferencesToSharedPreferencesAsyncIfNecessary(
+      legacySharedPreferencesInstance: prefs,
+      sharedPreferencesAsyncOptions: sharedPreferencesOptions,
+      migrationCompletedKey: 'migrationCompleted',
+    );
+    // #enddocregion migrate
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _migratePreferences().then((_) {
+       _prefs.then((SharedPreferencesWithCache prefs) {
+         print("counter"+prefs.getInt('counter').toString());
+         counter.value = prefs.getInt('counter') ?? 0;
+      });
+    });
+    counter.subscribe((value) async{
+      final SharedPreferencesWithCache prefs = await _prefs;
+      print(counter.value);
+      prefs.setInt('counter', counter.value);
+    });
   }
 
   void _navigateToAboutPage(){
