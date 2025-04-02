@@ -80,30 +80,30 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
     child: _WaitForInitialization(
         initialized: _preferencesReady.future,
         builder: (BuildContext context) => FutureBuilder<int>(
-        future: Future.value(counter.value),
-        builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
-          switch (snapshot.connectionState) {
-            case ConnectionState.none:
-            case ConnectionState.waiting:
-              return const CircularProgressIndicator();
-            case ConnectionState.active:
-            case ConnectionState.done:
-              if (snapshot.hasError) {
-                return Text('Error: ${snapshot.error}');
-              } else {
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                  const Text('Valor :'),
-                  Text('${counter.watch(context)}', style: Theme
-                      .of(context)
-                      .textTheme
-                      .headlineMedium),
-                ],
-                );
-              }
+          future: Future.value(counter.value),
+          builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
+            switch (snapshot.connectionState) {
+              case ConnectionState.none:
+              case ConnectionState.waiting:
+                return const CircularProgressIndicator();
+              case ConnectionState.active:
+              case ConnectionState.done:
+                if (snapshot.hasError) {
+                  return Text('Error: ${snapshot.error}');
+                } else {
+                  return Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                    const Text('Valor :'),
+                    Text('${counter.watch(context)}', style: Theme
+                        .of(context)
+                        .textTheme
+                        .headlineMedium),
+                  ],
+                  );
+                }
+            }
           }
-        }
         )
             ),
       ),
