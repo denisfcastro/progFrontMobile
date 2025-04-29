@@ -9,15 +9,6 @@ class AboutPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Sobre o Projeto'),
-        actions: [
-          IconButton(
-            onPressed: () {
-              Routefly.pop(context);
-            },
-            icon: const Icon(Icons.arrow_back),
-            tooltip: 'Voltar tela inicial',
-          )
-        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -25,7 +16,7 @@ class AboutPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Exemplo de Contador com Signals',
+              'Gerencial cadastro Empresa',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -33,25 +24,10 @@ class AboutPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Este projeto demonstra como utilizar o novo sistema de gestão de estado com Signals no Flutter. '
-                  'A aplicação implementa um contador simples que utiliza Signals para refletir alterações de estado '
-                  'de forma reativa e eficiente na interface do usuário.',
+              'Projeto Crud Empresa para Prog Mobile',
               style: TextStyle(fontSize: 16),
             ),
-            const SizedBox(height: 24),
-            const Text(
-              'Tecnologias utilizadas:',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const BulletPoint(text: 'Flutter SDK'),
-            const BulletPoint(text: 'Dart Language'),
-            const BulletPoint(text: 'Signals para reatividade'),
-            const BulletPoint(text: 'Gerenciamento de estado reativo'),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             const Text(
               'Autor:',
               style: TextStyle(
@@ -61,7 +37,7 @@ class AboutPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Desenvolvido por [Seu Nome]',
+              'Desenvolvido por Denis Ferreira',
               style: TextStyle(fontSize: 16),
             ),
           ],

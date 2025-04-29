@@ -1,11 +1,13 @@
 import 'dart:async';
-
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:projeto_modelo_20251/main.dart';
 import 'package:routefly/routefly.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences/util/legacy_to_async_migration_util.dart';
 import 'package:signals/signals_flutter.dart';
+import 'CadEmpresa.dart';
 
 class AppPage extends StatefulWidget {
   const AppPage({super.key});
@@ -15,125 +17,196 @@ class AppPage extends StatefulWidget {
 }
 
 class _AppPageState extends State<AppPage> with SignalsMixin {
-
   final Signal<int> counter = Signal<int>(0);
-
-  /// Completes when the preferences have been initialized, which happens after
-  /// legacy preferences have been migrated.
   final Completer<void> _preferencesReady = Completer<void>();
 
-  final Future<SharedPreferencesWithCache> _prefs =
+  final Future<SharedPreferencesWithCache> _prefs = SharedPreferencesWithCache.create(
+    cacheOptions: const SharedPreferencesWithCacheOptions(
+      allowList: <String>{'counter'},
+    ),
+  );
 
-  SharedPreferencesWithCache.create(
-      cacheOptions: const SharedPreferencesWithCacheOptions(
-        // This cache will only accept the key 'counter'.
-          allowList: <String>{'counter'}));
+  // Lista de empresas
+  List<Map<String, dynamic>> empresas = [];
+
+  // Filtro
+  final TextEditingController _searchController = TextEditingController();
+  String _searchText = '';
 
   void _incrementCounter() {
     counter.value++;
   }
 
-
   Future<void> _migratePreferences() async {
-    // #docregion migrate
-    const SharedPreferencesOptions sharedPreferencesOptions =
-    SharedPreferencesOptions();
+    const SharedPreferencesOptions sharedPreferencesOptions = SharedPreferencesOptions();
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await migrateLegacySharedPreferencesToSharedPreferencesAsyncIfNecessary(
       legacySharedPreferencesInstance: prefs,
       sharedPreferencesAsyncOptions: sharedPreferencesOptions,
       migrationCompletedKey: 'migrationCompleted',
     );
-    // #enddocregion migrate
   }
+
+  Future<void> _fetchEmpresas() async {
+    const String url = 'http://10.0.2.2:8080/api/v1/controllers';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        debugPrint('Empresas recebidas: $data');  // Verificando o que veio da API
+        setState(() {
+          empresas = data.map((e) => e as Map<String, dynamic>).toList();
+        });
+      } else {
+        debugPrint('Erro ao buscar empresas: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Erro de conexão: $e');
+    }
+  }
+
+
 
   @override
   void initState() {
     super.initState();
+
     _migratePreferences().then((_) {
-       _prefs.then((SharedPreferencesWithCache prefs) {
-         print("counter"+prefs.getInt('counter').toString());
-         counter.value = prefs.getInt('counter') ?? 0;
-         _preferencesReady.complete();
-         counter.subscribe((value) async{
-           final SharedPreferencesWithCache prefs = await _prefs;
-           print(counter.value);
-           prefs.setInt('counter', counter.value);
-         });
+      _prefs.then((SharedPreferencesWithCache prefs) {
+        counter.value = prefs.getInt('counter') ?? 0;
+        _preferencesReady.complete();
+        counter.subscribe((value) async {
+          final SharedPreferencesWithCache prefs = await _prefs;
+          prefs.setInt('counter', counter.value);
+        });
       });
     });
 
+    _searchController.addListener(() {
+      setState(() {
+        _searchText = _searchController.text.toLowerCase();
+      });
+    });
+
+    _fetchEmpresas();
   }
 
-  void _navigateToAboutPage(){
+  void _navigateToAboutPage() {
     Routefly.push(routePaths.about);
   }
+
   _openTypeEditPage() {
     Routefly.push('${routePaths.type.path}/${counter.value}');
   }
 
+  void _navigateToCompanyFormPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CompanyFormPage()),
+    );
+  }
+
+  void _editCompany(int index) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CompanyFormPage()),
+    );
+  }
+
+  void _deleteCompany(int index) {
+    setState(() {
+      empresas.removeAt(index);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Lista filtrada por nome
+    final filteredEmpresas = empresas.where((empresa) {
+      final nome = empresa['nomeFantasia']?.toLowerCase() ?? '';
+      return nome.contains(_searchText);
+    }).toList();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Flutter Counter')),
+      appBar: AppBar(title: const Text('Lista de Empresas')),
       body: Center(
-    child: _WaitForInitialization(
-        initialized: _preferencesReady.future,
-        builder: (BuildContext context) => FutureBuilder<int>(
-          future: Future.value(counter.value),
-          builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
-            switch (snapshot.connectionState) {
-              case ConnectionState.none:
-              case ConnectionState.waiting:
-                return const CircularProgressIndicator();
-              case ConnectionState.active:
-              case ConnectionState.done:
-                if (snapshot.hasError) {
-                  return Text('Error: ${snapshot.error}');
-                } else {
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                    const Text('Valor :'),
-                    Text('${counter.watch(context)}', style: Theme
-                        .of(context)
-                        .textTheme
-                        .headlineMedium),
-                  ],
-                  );
-                }
-            }
-          }
-        )
-            ),
+        child: _WaitForInitialization(
+          initialized: _preferencesReady.future,
+          builder: (BuildContext context) => Column(
+            children: <Widget>[
+              // Campo de busca
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    labelText: 'Buscar empresa',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Lista de empresas
+              Expanded(
+                child: ListView.builder(
+                  itemCount: filteredEmpresas.length,
+                  itemBuilder: (context, index) {
+                    final empresa = filteredEmpresas[index];
+                    return ListTile(
+                      title: Text(empresa['nomeFantasia'] ?? 'Empresa'),
+                      subtitle: Text(
+                        'CNPJ: ${empresa['cnpj'] ?? ''}\nStatus: ${empresa['status'] == true ? 'Ativo' : 'Inativo'}',
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () {
+                              _editCompany(index);
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () {
+                              _deleteCompany(index);
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
+        onPressed: _navigateToCompanyFormPage,
+        tooltip: 'Adicionar Empresa',
         child: const Icon(Icons.add),
       ),
       bottomNavigationBar: NavigationBar(
-          destinations: [
-            BackButton(
-              onPressed: () {
-                var value = counter.value;
-                ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('OK clicado : '+value.toString()),
-                      action: SnackBarAction(label: "OK", onPressed:() {} ),
-                    )
-                );
-              },
-            ),
-            TextButton(onPressed: _navigateToAboutPage, child: Text("Sobre")),
-            IconButton(onPressed: _openTypeEditPage, icon: const Icon(Icons.edit))
-          ]
+        destinations: [
+          BackButton(
+            onPressed: () {},
+          ),
+          TextButton(
+            onPressed: _navigateToAboutPage,
+            child: const Text("Sobre"),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// Waits for the [initialized] future to complete before rendering [builder].
 class _WaitForInitialization extends StatelessWidget {
   const _WaitForInitialization({
     required this.initialized,
