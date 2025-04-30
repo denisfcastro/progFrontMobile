@@ -26,10 +26,5 @@ const routePaths = (
   about: '/about',
   lib: (path: '/lib', app: '/lib/app'),
   notfound: '/notfound',
-  student: (
-    path: '/student',
-    register: '/student/register',
-    room: '/student/room',
-  ),
   type: (path: '/type', $id: '/type/[id]'),
 );

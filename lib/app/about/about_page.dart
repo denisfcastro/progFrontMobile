@@ -37,7 +37,7 @@ class AboutPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Desenvolvido por Denis Ferreira',
+              'Desenvolvido por Denis Ferreira e Ítalo André',
               style: TextStyle(fontSize: 16),
             ),
           ],

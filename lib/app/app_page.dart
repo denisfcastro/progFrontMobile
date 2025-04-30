@@ -74,10 +74,7 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
   void _navigateToAboutPage() => Routefly.push(routePaths.about);
 
   void _navigateToCompanyFormPage() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const CompanyFormPage()),
-    );
+    await Navigator.push(context, MaterialPageRoute(builder: (context) => const CompanyFormPage()),);
     _consultarEmpresas();
   }
 
