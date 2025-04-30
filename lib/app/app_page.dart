@@ -33,9 +33,7 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
 
-  void _incrementCounter() {
-    counter.value++;
-  }
+
 
   Future<void> _migratePreferences() async {
     const SharedPreferencesOptions sharedPreferencesOptions = SharedPreferencesOptions();
@@ -47,7 +45,7 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
     );
   }
 
-  Future<void> _fetchEmpresas() async {
+  Future<void> _consultarEmpresas() async {
     const String url = 'http://10.0.2.2:8080/api/v1/controllers';
 
     try {
@@ -90,7 +88,7 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
       });
     });
 
-    _fetchEmpresas();
+    _consultarEmpresas();
   }
 
   void _navigateToAboutPage() {
@@ -101,24 +99,69 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
     Routefly.push('${routePaths.type.path}/${counter.value}');
   }
 
-  void _navigateToCompanyFormPage() {
-    Navigator.push(
+  void _navigateToCompanyFormPage() async {
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const CompanyFormPage()),
     );
+    _consultarEmpresas(); // Recarrega as empresas após voltar da tela de cadastro
   }
 
-  void _editCompany(int index) {
-    Navigator.push(
+  void _editCompany(int index) async {
+    final empresa = empresas[index];
+    await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const CompanyFormPage()),
+      MaterialPageRoute(
+        builder: (context) => CompanyFormPage(empresa: empresa),
+      ),
     );
+    _consultarEmpresas(); // Recarrega as empresas após voltar da edição
   }
 
-  void _deleteCompany(int index) {
-    setState(() {
-      empresas.removeAt(index);
-    });
+  void _deleteCompany(int index) async {
+    final empresa = empresas[index];
+
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar Exclusão'),
+        content: Text('Tem certeza que deseja excluir a empresa "${empresa['nomeFantasia']}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false), // Cancela
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true), // Confirma
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final int empresaId = empresa['id'];
+      const String baseUrl = 'http://10.0.2.2:8080/api/v1/controllers';
+
+      try {
+        final response = await http.delete(Uri.parse('$baseUrl/$empresaId'));
+
+        if (response.statusCode == 200) {
+          setState(() {
+            empresas.removeAt(index);
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Empresa excluída com sucesso!')),
+          );
+        } else {
+          throw Exception('Erro ao excluir: ${response.statusCode}');
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao excluir empresa: $e')),
+        );
+      }
+    }
   }
 
   @override
