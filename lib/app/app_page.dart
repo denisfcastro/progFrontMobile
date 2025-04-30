@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:projeto_modelo_20251/main.dart';
+import 'package:Empresas/main.dart';
 import 'package:routefly/routefly.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences/util/legacy_to_async_migration_util.dart';
@@ -17,7 +17,6 @@ class AppPage extends StatefulWidget {
 }
 
 class _AppPageState extends State<AppPage> with SignalsMixin {
-  // Sinais e preferências
   final Signal<int> counter = Signal<int>(0);
   final Completer<void> _preferencesReady = Completer<void>();
   final Future<SharedPreferencesWithCache> _prefs = SharedPreferencesWithCache.create(
@@ -26,10 +25,12 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
     ),
   );
 
-  // Dados e filtros
   List<Map<String, dynamic>> empresas = [];
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
+
+  int _currentPage = 0;
+  final int _itemsPerPage = 5;
 
   @override
   void initState() {
@@ -39,7 +40,6 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
     _consultarEmpresas();
   }
 
-  // Inicialização
   Future<void> _initializePreferences() async {
     await _migratePreferences();
     _prefs.then((SharedPreferencesWithCache prefs) {
@@ -66,11 +66,11 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
     _searchController.addListener(() {
       setState(() {
         _searchText = _searchController.text.toLowerCase();
+        _currentPage = 0;
       });
     });
   }
 
-  // Navegação
   void _navigateToAboutPage() => Routefly.push(routePaths.about);
 
   void _navigateToCompanyFormPage() async {
@@ -78,21 +78,20 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
       context,
       MaterialPageRoute(builder: (context) => const CompanyFormPage()),
     );
-    _consultarEmpresas(); // Recarrega as empresas após voltar
+    _consultarEmpresas();
   }
 
   void _editCompany(int index) async {
-    final empresa = empresas[index];
+    final empresa = _filteredEmpresas()[index];
     await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => CompanyFormPage(empresa: empresa),
       ),
     );
-    _consultarEmpresas(); // Recarrega as empresas após voltar
+    _consultarEmpresas();
   }
 
-  // API
   Future<void> _consultarEmpresas() async {
     const String url = 'http://10.0.2.2:8080/api/v1/controllers';
 
@@ -112,7 +111,7 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
   }
 
   void _deleteCompany(int index) async {
-    final empresa = empresas[index];
+    final empresa = _filteredEmpresas()[index];
     final bool? confirm = await _showDeleteConfirmationDialog(empresa);
 
     if (confirm == true) {
@@ -123,7 +122,7 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
         final response = await http.delete(Uri.parse('$baseUrl/$empresaId'));
         if (response.statusCode == 200) {
           setState(() {
-            empresas.removeAt(index);
+            empresas.removeWhere((e) => e['id'] == empresaId);
           });
           _showSnackBar('Empresa excluída com sucesso!');
         } else {
@@ -135,7 +134,20 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
     }
   }
 
-  // Diálogos e mensagens
+  List<Map<String, dynamic>> _filteredEmpresas() {
+    return empresas.where((empresa) {
+      final nome = empresa['nomeFantasia']?.toLowerCase() ?? '';
+      return nome.contains(_searchText);
+    }).toList();
+  }
+
+  List<Map<String, dynamic>> _paginatedEmpresas() {
+    final filtered = _filteredEmpresas();
+    final start = _currentPage * _itemsPerPage;
+    final end = start + _itemsPerPage;
+    return filtered.sublist(start, end > filtered.length ? filtered.length : end);
+  }
+
   Future<bool?> _showDeleteConfirmationDialog(Map<String, dynamic> empresa) {
     return showDialog<bool>(
       context: context,
@@ -160,7 +172,6 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  // Widgets
   Widget _buildDrawer() {
     return Drawer(
       child: ListView(
@@ -191,36 +202,62 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
     );
   }
 
-  Widget _buildCompanyList() {
-    final filteredEmpresas = empresas.where((empresa) {
-      final nome = empresa['nomeFantasia']?.toLowerCase() ?? '';
-      return nome.contains(_searchText);
-    }).toList();
+  Widget _buildPaginationControls() {
+    final totalPages = (_filteredEmpresas().length / _itemsPerPage).ceil();
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: _currentPage > 0
+              ? () => setState(() => _currentPage--)
+              : null,
+        ),
+        Text('Página ${_currentPage + 1} de $totalPages'),
+        IconButton(
+          icon: const Icon(Icons.arrow_forward),
+          onPressed: _currentPage < totalPages - 1
+              ? () => setState(() => _currentPage++)
+              : null,
+        ),
+      ],
+    );
+  }
 
-    return ListView.builder(
-      itemCount: filteredEmpresas.length,
-      itemBuilder: (context, index) {
-        final empresa = filteredEmpresas[index];
-        return ListTile(
-          title: Text(empresa['nomeFantasia'] ?? 'Empresa'),
-          subtitle: Text(
-            'CNPJ: ${empresa['cnpj'] ?? ''}\nStatus: ${empresa['status'] == true ? 'Ativo' : 'Inativo'}',
+  Widget _buildCompanyList() {
+    final empresasPaginadas = _paginatedEmpresas();
+
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.builder(
+            itemCount: empresasPaginadas.length,
+            itemBuilder: (context, index) {
+              final empresa = empresasPaginadas[index];
+              return ListTile(
+                title: Text(empresa['nomeFantasia'] ?? 'Empresa'),
+                subtitle: Text(
+                  'CNPJ: ${empresa['cnpj'] ?? ''}\nStatus: ${empresa['status'] == true ? 'Ativo' : 'Inativo'}',
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () => _editCompany(index + _currentPage * _itemsPerPage),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => _deleteCompany(index + _currentPage * _itemsPerPage),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.edit),
-                onPressed: () => _editCompany(index),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
-                onPressed: () => _deleteCompany(index),
-              ),
-            ],
-          ),
-        );
-      },
+        ),
+        _buildPaginationControls(),
+      ],
     );
   }
 

@@ -129,7 +129,7 @@ class _CompanyFormPageState extends State<CompanyFormPage> {
             actions: <Widget>[
               TextButton(
                 onPressed: () {
-                  Navigator.of(context).pop(); // Fecha o dialog
+                  Navigator.of(context).pop();
                   Navigator.of(context).pop(); // Volta para tela anterior
                 },
                 child: const Text('Fechar'),
