@@ -31,6 +31,68 @@ class _CompanyFormPageState extends State<CompanyFormPage> {
     }
   }
 
+
+  @override
+  Widget build(BuildContext context) {
+    final isEditing = widget.empresa != null;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(isEditing ? 'Editar Empresa' : 'Cadastro de Empresa'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const SizedBox(height: 20),
+            TextField(
+              controller: _companyNameController,
+              decoration: const InputDecoration(
+                labelText: 'Nome da Empresa',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _cnpjController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'CNPJ',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                const Text(
+                  'Status Ativo',
+                  style: TextStyle(fontSize: 16),
+                ),
+                Switch(
+                  value: _isActive,
+                  onChanged: widget.empresa == null ? null : (bool value) {
+                    setState(() {
+                      _isActive = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Center(
+              child: ElevatedButton(
+                onPressed: _save,
+                child: const Text('Salvar'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _save() async {
     String nomeFantasia = _companyNameController.text;
     String cnpj = _cnpjController.text;
@@ -93,66 +155,5 @@ class _CompanyFormPageState extends State<CompanyFormPage> {
         ),
       );
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isEditing = widget.empresa != null;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(isEditing ? 'Editar Empresa' : 'Cadastro de Empresa'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            const SizedBox(height: 20),
-            TextField(
-              controller: _companyNameController,
-              decoration: const InputDecoration(
-                labelText: 'Nome da Empresa',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _cnpjController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'CNPJ',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                const Text(
-                  'Status Ativo',
-                  style: TextStyle(fontSize: 16),
-                ),
-                Switch(
-                  value: _isActive,
-                  onChanged: widget.empresa == null ? null : (bool value) {
-                    setState(() {
-                      _isActive = value;
-                    });
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Center(
-              child: ElevatedButton(
-                onPressed: _save,
-                child: const Text('Salvar'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

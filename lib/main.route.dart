@@ -6,9 +6,6 @@ import 'package:routefly/routefly.dart';
 import 'app/about/about_page.dart' as a0;
 import 'app/app_page.dart' as a1;
 import 'app/notfound_page.dart' as a2;
-import 'app/student/register/register_page.dart' as a3;
-import 'app/student/room/room_page.dart' as a4;
-import 'app/student/student_layout.dart' as a5;
 import 'app/type/[id]_page.dart' as a6;
 
 Route b0Builder(BuildContext ctx, RouteSettings settings) =>
@@ -17,11 +14,5 @@ Route b1Builder(BuildContext ctx, RouteSettings settings) =>
     Routefly.defaultRouteBuilder(ctx, settings, const a1.AppPage());
 Route b2Builder(BuildContext ctx, RouteSettings settings) =>
     Routefly.defaultRouteBuilder(ctx, settings, const a2.NotFoundPage());
-Route b3Builder(BuildContext ctx, RouteSettings settings) =>
-    Routefly.defaultRouteBuilder(ctx, settings, const a3.RegisterPage());
-Route b4Builder(BuildContext ctx, RouteSettings settings) =>
-    Routefly.defaultRouteBuilder(ctx, settings, const a4.RoomPage());
-Route b5Builder(BuildContext ctx, RouteSettings settings) =>
-    Routefly.defaultRouteBuilder(ctx, settings, const a5.NotFoundPage());
 Route b6Builder(BuildContext ctx, RouteSettings settings) =>
     Routefly.defaultRouteBuilder(ctx, settings, const a6.TypeEditPage());

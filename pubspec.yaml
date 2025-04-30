@@ -39,7 +39,6 @@ dependencies:
   routefly: ^3.1.2
   shared_preferences: ^2.5.2
 
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
