@@ -26,6 +26,8 @@ class _CompanyFormPageState extends State<CompanyFormPage> {
       _companyNameController.text = widget.empresa!['nomeFantasia'] ?? '';
       _cnpjController.text = widget.empresa!['cnpj'] ?? '';
       _isActive = widget.empresa!['status'] ?? true;
+    } else {
+      _isActive = true;
     }
   }
 
@@ -133,7 +135,7 @@ class _CompanyFormPageState extends State<CompanyFormPage> {
                 ),
                 Switch(
                   value: _isActive,
-                  onChanged: (bool value) {
+                  onChanged: widget.empresa == null ? null : (bool value) {
                     setState(() {
                       _isActive = value;
                     });

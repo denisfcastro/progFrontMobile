@@ -166,20 +166,52 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
 
   @override
   Widget build(BuildContext context) {
-    // Lista filtrada por nome
     final filteredEmpresas = empresas.where((empresa) {
       final nome = empresa['nomeFantasia']?.toLowerCase() ?? '';
       return nome.contains(_searchText);
     }).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Lista de Empresas')),
+      appBar: AppBar(
+        title: const Text('Lista de Empresas'),
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(
+                color: Colors.blue,
+              ),
+              child: const Text(
+                'Menu',
+                style: TextStyle(color: Colors.white, fontSize: 24),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.add),
+              title: const Text('Incluir Empresa'),
+              onTap: () {
+                Navigator.pop(context); // Fecha o menu
+                _navigateToCompanyFormPage();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.info),
+              title: const Text('Sobre o Projeto'),
+              onTap: () {
+                Navigator.pop(context); // Fecha o menu
+                _navigateToAboutPage();
+              },
+            ),
+          ],
+        ),
+      ),
       body: Center(
         child: _WaitForInitialization(
           initialized: _preferencesReady.future,
           builder: (BuildContext context) => Column(
             children: <Widget>[
-              // Campo de busca
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: TextField(
@@ -193,8 +225,6 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
                   ),
                 ),
               ),
-
-              // Lista de empresas
               Expanded(
                 child: ListView.builder(
                   itemCount: filteredEmpresas.length,
@@ -234,17 +264,6 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
         onPressed: _navigateToCompanyFormPage,
         tooltip: 'Adicionar Empresa',
         child: const Icon(Icons.add),
-      ),
-      bottomNavigationBar: NavigationBar(
-        destinations: [
-          BackButton(
-            onPressed: () {},
-          ),
-          TextButton(
-            onPressed: _navigateToAboutPage,
-            child: const Text("Sobre"),
-          ),
-        ],
       ),
     );
   }
