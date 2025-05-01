@@ -232,7 +232,8 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
             itemBuilder: (context, index) {
               final empresa = empresasPaginadas[index];
               return ListTile(
-                title: Text(empresa['nomeFantasia'] ?? 'Empresa'),
+                title: Text(empresa['nomeFantasia'] ?? 'Empresa',
+                style: const TextStyle(fontSize: 30)),
                 subtitle: Text(
                   'CNPJ: ${empresa['cnpj'] ?? ''}\nStatus: ${empresa['status'] == true ? 'Ativo' : 'Inativo'}',
                 ),
@@ -241,10 +242,12 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.edit),
+                      iconSize: 35,
                       onPressed: () => _editCompany(index + _currentPage * _itemsPerPage),
                     ),
                     IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
+                      iconSize: 35,
                       onPressed: () => _deleteCompany(index + _currentPage * _itemsPerPage),
                     ),
                   ],
