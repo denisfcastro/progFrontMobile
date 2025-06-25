@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:Empresas/main.dart';
-import 'package:routefly/routefly.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences/util/legacy_to_async_migration_util.dart';
 import 'package:signals/signals_flutter.dart';
+
+import '../services/auth_service.dart';
 import 'CadEmpresa.dart';
+import 'about/about_page.dart';
 
 class AppPage extends StatefulWidget {
   const AppPage({super.key});
@@ -17,6 +17,8 @@ class AppPage extends StatefulWidget {
 }
 
 class _AppPageState extends State<AppPage> with SignalsMixin {
+  final AuthService _authService = AuthService();
+
   final Signal<int> counter = Signal<int>(0);
   final Completer<void> _preferencesReady = Completer<void>();
   final Future<SharedPreferencesWithCache> _prefs = SharedPreferencesWithCache.create(
@@ -28,6 +30,7 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
   List<Map<String, dynamic>> empresas = [];
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
+  bool _isLoading = true;
 
   int _currentPage = 0;
   final int _itemsPerPage = 5;
@@ -71,7 +74,9 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
     });
   }
 
-  void _navigateToAboutPage() => Routefly.push(routePaths.about);
+  void _navigateToAboutPage() {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutPage()));
+  }
 
   void _navigateToCompanyFormPage() async {
     await Navigator.push(context, MaterialPageRoute(builder: (context) => const CompanyFormPage()),);
@@ -90,20 +95,21 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
   }
 
   Future<void> _consultarEmpresas() async {
-    const String url = 'http://10.0.2.2:8080/api/v1/controllers';
-
+    setState(() => _isLoading = true);
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await _authService.get('api/v1/controllers');
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         setState(() {
           empresas = data.map((e) => e as Map<String, dynamic>).toList();
         });
       } else {
-        debugPrint('Erro ao buscar empresas: ${response.statusCode}');
+        _showSnackBar('Erro ao carregar dados: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Erro de conexão: $e');
+      _showSnackBar('Erro de conexão ao carregar dados.');
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -113,15 +119,11 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
 
     if (confirm == true) {
       final int empresaId = empresa['id'];
-      const String baseUrl = 'http://10.0.2.2:8080/api/v1/controllers';
-
       try {
-        final response = await http.delete(Uri.parse('$baseUrl/$empresaId'));
+        final response = await _authService.delete('api/v1/controllers/$empresaId');
         if (response.statusCode == 200) {
-          setState(() {
-            empresas.removeWhere((e) => e['id'] == empresaId);
-          });
           _showSnackBar('Empresa excluída com sucesso!');
+          _consultarEmpresas(); // Recarrega a lista
         } else {
           throw Exception('Erro ao excluir: ${response.statusCode}');
         }
@@ -201,6 +203,8 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
 
   Widget _buildPaginationControls() {
     final totalPages = (_filteredEmpresas().length / _itemsPerPage).ceil();
+    if(totalPages == 0) return const SizedBox.shrink();
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -222,7 +226,15 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
   }
 
   Widget _buildCompanyList() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     final empresasPaginadas = _paginatedEmpresas();
+
+    if(empresasPaginadas.isEmpty){
+      return const Center(child: Text("Nenhuma empresa encontrada."));
+    }
 
     return Column(
       children: [
@@ -233,7 +245,7 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
               final empresa = empresasPaginadas[index];
               return ListTile(
                 title: Text(empresa['nomeFantasia'] ?? 'Empresa',
-                style: const TextStyle(fontSize: 30)),
+                    style: const TextStyle(fontSize: 20)),
                 subtitle: Text(
                   'CNPJ: ${empresa['cnpj'] ?? ''}\nStatus: ${empresa['status'] == true ? 'Ativo' : 'Inativo'}',
                 ),
@@ -242,12 +254,10 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.edit),
-                      iconSize: 35,
                       onPressed: () => _editCompany(index + _currentPage * _itemsPerPage),
                     ),
                     IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
-                      iconSize: 35,
                       onPressed: () => _deleteCompany(index + _currentPage * _itemsPerPage),
                     ),
                   ],

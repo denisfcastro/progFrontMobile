@@ -1,42 +1,41 @@
-import 'package:routefly/routefly.dart';
 import 'package:flutter/material.dart';
 
-import 'main.route.dart'; // <- GENERATED
 
-part 'main.g.dart'; // <- GENERATED
+import 'screens/login_screen.dart';
 
 void main() {
-  runApp(const App());
+  runApp(const MyApp());
 }
 
-@Main()
-class App extends StatelessWidget {
-  const App({super.key});
-
-  ThemeData createTheme(BuildContext context, Brightness brightness) {
-    return ThemeData(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.blue,
-        brightness: brightness,
-      ),
-      brightness: brightness,
-      useMaterial3: true,
-    );
-  }
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-        title: 'Counter example',
-        debugShowCheckedModeBanner: false,
-        theme: createTheme(context, Brightness.light),
-        darkTheme: createTheme(context, Brightness.dark),
-        themeMode: ThemeMode.system,
-        routerConfig: Routefly.routerConfig(
-          routes: routes,
-          initialPath: routePaths.lib.app,
-          notFoundPath: '/notfound',
-        ));
+    return MaterialApp(
+      title: 'Empresa App',
+
+      home: const LoginScreen(),
+
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        useMaterial3: true,
+        scaffoldBackgroundColor: Colors.grey[100],
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+          ),
+        ),
+      ),
+      debugShowCheckedModeBanner: false,
+    );
   }
 }
-

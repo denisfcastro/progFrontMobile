@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../services/auth_service.dart';
 
 class CompanyFormPage extends StatefulWidget {
   final Map<String, dynamic>? empresa;
@@ -12,10 +13,13 @@ class CompanyFormPage extends StatefulWidget {
 }
 
 class _CompanyFormPageState extends State<CompanyFormPage> {
+  final AuthService _authService = AuthService();
+
   final TextEditingController _companyNameController = TextEditingController();
   final TextEditingController _cnpjController = TextEditingController();
   bool _isActive = true;
   int? _empresaId;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -72,7 +76,7 @@ class _CompanyFormPageState extends State<CompanyFormPage> {
                 ),
                 Switch(
                   value: _isActive,
-                  onChanged: widget.empresa == null ? null : (bool value) {
+                  onChanged: (bool value) {
                     setState(() {
                       _isActive = value;
                     });
@@ -82,7 +86,9 @@ class _CompanyFormPageState extends State<CompanyFormPage> {
             ),
             const SizedBox(height: 20),
             Center(
-              child: ElevatedButton(
+              child: _isSaving
+                  ? const CircularProgressIndicator()
+                  : ElevatedButton(
                 onPressed: _save,
                 child: const Text('Salvar'),
               ),
@@ -94,33 +100,34 @@ class _CompanyFormPageState extends State<CompanyFormPage> {
   }
 
   Future<void> _save() async {
-    String nomeFantasia = _companyNameController.text;
-    String cnpj = _cnpjController.text;
-    bool status = _isActive;
+    setState(() => _isSaving = true);
 
-    const String baseUrl = 'http://10.0.2.2:8080/api/v1/controllers';
-
-    final uri = _empresaId == null
-        ? Uri.parse(baseUrl)
-        : Uri.parse('$baseUrl/$_empresaId');
-
-    final method = _empresaId == null ? 'POST' : 'PUT';
+    final Map<String, dynamic> companyData = {
+      if (_empresaId != null) 'id': _empresaId,
+      'nomeFantasia': _companyNameController.text,
+      'cnpj': _cnpjController.text,
+      'status': _isActive,
+    };
 
     try {
-      final response = await http.Request(method, uri)
-        ..headers['Content-Type'] = 'application/json'
-        ..body = jsonEncode({
-          'nomeFantasia': nomeFantasia,
-          'cnpj': cnpj,
-          'status': status,
-        });
+      http.Response response;
+      if (_empresaId == null) {
+        response = await _authService.post(
+          'api/v1/controllers',
+          body: companyData,
+        );
+      } else {
+        response = await _authService.put(
+          'api/v1/controllers/$_empresaId',
+          body: companyData,
+        );
+      }
 
-      final streamedResponse = await response.send();
-      final responseBody = await streamedResponse.stream.bytesToString();
-
-      if (streamedResponse.statusCode == 200 || streamedResponse.statusCode == 201) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Sucesso
         showDialog(
           context: context,
+          barrierDismissible: false,
           builder: (context) => AlertDialog(
             title: const Text('Sucesso'),
             content: Text(_empresaId == null
@@ -130,30 +137,32 @@ class _CompanyFormPageState extends State<CompanyFormPage> {
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
-                  Navigator.of(context).pop(); // Volta para tela anterior
+                  Navigator.of(context).pop();
                 },
-                child: const Text('Fechar'),
+                child: const Text('OK'),
               ),
             ],
           ),
         );
       } else {
-        throw Exception('Erro ao salvar: ${streamedResponse.statusCode}\n$responseBody');
+        throw Exception('Falha ao salvar: ${response.statusCode}\n${response.body}');
       }
     } catch (e) {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Erro'),
-          content: Text('Erro ao salvar: $e'),
+          content: Text('Ocorreu um erro: $e'),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Fechar'),
+              child: const Text('OK'),
             ),
           ],
         ),
       );
+    } finally {
+      setState(() => _isSaving = false);
     }
   }
 }

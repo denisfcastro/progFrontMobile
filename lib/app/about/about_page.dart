@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:routefly/routefly.dart';
+// import 'package:routefly/routefly.dart'; // REMOVIDO
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
@@ -7,42 +7,42 @@ class AboutPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sobre o Projeto'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Gerencial cadastro Empresa',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Projeto Crud Empresa para Prog Mobile',
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Autor:',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Desenvolvido por Denis Ferreira e Ítalo André',
-              style: TextStyle(fontSize: 16),
-            ),
-          ],
+        appBar: AppBar(
+          title: const Text('Sobre o Projeto'),
         ),
-      )
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Gerencial cadastro Empresa',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Projeto Crud Empresa para Prog Mobile',
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Autor:',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Desenvolvido por Denis Ferreira e Ítalo André',
+                style: TextStyle(fontSize: 16),
+              ),
+            ],
+          ),
+        )
     );
   }
 }
