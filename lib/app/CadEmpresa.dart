@@ -13,6 +13,7 @@ class CompanyFormPage extends StatefulWidget {
 }
 
 class _CompanyFormPageState extends State<CompanyFormPage> {
+  final _formKey = GlobalKey<FormState>();
   final AuthService _authService = AuthService();
 
   final TextEditingController _companyNameController = TextEditingController();
@@ -30,80 +31,40 @@ class _CompanyFormPageState extends State<CompanyFormPage> {
       _companyNameController.text = widget.empresa!['nomeFantasia'] ?? '';
       _cnpjController.text = widget.empresa!['cnpj'] ?? '';
       _isActive = widget.empresa!['status'] ?? true;
-    } else {
-      _isActive = true;
     }
   }
 
-
-  @override
-  Widget build(BuildContext context) {
-    final isEditing = widget.empresa != null;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(isEditing ? 'Editar Empresa' : 'Cadastro de Empresa'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            const SizedBox(height: 20),
-            TextField(
-              controller: _companyNameController,
-              decoration: const InputDecoration(
-                labelText: 'Nome da Empresa',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _cnpjController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'CNPJ',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                const Text(
-                  'Status Ativo',
-                  style: TextStyle(fontSize: 16),
-                ),
-                Switch(
-                  value: _isActive,
-                  onChanged: (bool value) {
-                    setState(() {
-                      _isActive = value;
-                    });
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Center(
-              child: _isSaving
-                  ? const CircularProgressIndicator()
-                  : ElevatedButton(
-                onPressed: _save,
-                child: const Text('Salvar'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  /// **FUNÇÃO MELHORADA**
+  /// Esta função agora é mais robusta para interpretar diferentes tipos de erro do backend.
+  String _parseErrorMessage(http.Response response) {
+    // Tenta primeiro decodificar o corpo da resposta como JSON.
+    try {
+      final decoded = jsonDecode(response.body);
+      // Se for um objeto JSON com a chave 'message' (padrão em muitas APIs).
+      if (decoded is Map && decoded.containsKey('message')) {
+        return decoded['message'];
+      }
+      // Se for um objeto JSON com a chave 'error'.
+      if (decoded is Map && decoded.containsKey('error')) {
+        return decoded['error'];
+      }
+      // Se for JSON mas não tiver uma chave conhecida, retorna o corpo original.
+      return response.body;
+    } catch (e) {
+      // Se a decodificação JSON falhar, significa que o corpo é texto simples.
+      // Retornamos o texto diretamente, pois é a mensagem de erro customizada.
+      return response.body;
+    }
   }
 
   Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     final Map<String, dynamic> companyData = {
-      if (_empresaId != null) 'id': _empresaId,
       'nomeFantasia': _companyNameController.text,
       'cnpj': _cnpjController.text,
       'status': _isActive,
@@ -123,46 +84,176 @@ class _CompanyFormPageState extends State<CompanyFormPage> {
         );
       }
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        // Sucesso
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            title: const Text('Sucesso'),
-            content: Text(_empresaId == null
-                ? 'Empresa cadastrada com sucesso!'
-                : 'Empresa atualizada com sucesso!'),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pop();
-                },
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
+      if (!mounted) return;
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        _showSuccessDialog();
       } else {
-        throw Exception('Falha ao salvar: ${response.statusCode}\n${response.body}');
+        // Usa a nova função para extrair a mensagem de erro corretamente.
+        final errorMessage = _parseErrorMessage(response);
+        _showErrorDialog(errorMessage);
       }
     } catch (e) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Erro'),
-          content: Text('Ocorreu um erro: $e'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
-            ),
+      if (!mounted) return;
+      // Mensagem de erro mais específica para falhas de conexão.
+      _showErrorDialog('Falha na comunicação com o servidor. Verifique sua conexão de rede e tente novamente.');
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green),
+            SizedBox(width: 10),
+            Text('Sucesso!'),
           ],
         ),
-      );
-    } finally {
-      setState(() => _isSaving = false);
-    }
+        content: Text(_empresaId == null
+            ? 'Empresa cadastrada com sucesso!'
+            : 'Empresa atualizada com sucesso!'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Fecha o diálogo
+              Navigator.of(context).pop(); // Retorna para a lista
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.error, color: Colors.red),
+            SizedBox(width: 10),
+            Text('Ocorreu um Erro'),
+          ],
+        ),
+        content: Text(message),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isEditing = widget.empresa != null;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(isEditing ? 'Editar Empresa' : 'Nova Empresa'),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue.shade400, Colors.blue.shade900],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Card(
+            elevation: 4.0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    TextFormField(
+                      controller: _companyNameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Nome Fantasia',
+                        prefixIcon: Icon(Icons.business_rounded),
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'O nome da empresa é obrigatório.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _cnpjController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'CNPJ',
+                        prefixIcon: Icon(Icons.pin_rounded),
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'O CNPJ é obrigatório.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    SwitchListTile(
+                      title: const Text(
+                        'Empresa Ativa',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      value: _isActive,
+                      onChanged: (bool value) {
+                        setState(() {
+                          _isActive = value;
+                        });
+                      },
+                      secondary: Icon(
+                        _isActive ? Icons.check_circle_outline : Icons.highlight_off,
+                        color: _isActive ? Colors.green : Colors.grey,
+                      ),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    const SizedBox(height: 30),
+                    _isSaving
+                        ? const Center(child: CircularProgressIndicator())
+                        : ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
+                      onPressed: _save,
+                      child: const Text('Salvar', style: TextStyle(fontSize: 16)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
