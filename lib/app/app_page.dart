@@ -44,7 +44,6 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
     _consultarEmpresas();
   }
 
-  // --- MÉTODOS DE INICIALIZAÇÃO E LÓGICA ---
 
   Future<void> _initializePreferences() async {
     await _migratePreferences();
@@ -103,7 +102,6 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
     }
   }
 
-  // --- MÉTODOS DE NAVEGAÇÃO E AÇÕES ---
 
   void _navigateToAboutPage() {
     Navigator.push(
@@ -145,7 +143,6 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
     }
   }
 
-  // --- HELPERS (FILTROS E DIÁLOGOS) ---
 
   List<Map<String, dynamic>> _filteredEmpresas() {
     if (_searchText.isEmpty) {
@@ -195,7 +192,6 @@ class _AppPageState extends State<AppPage> with SignalsMixin {
   }
 
 
-  // --- WIDGETS DE CONSTRUÇÃO DA UI ---
 
   Widget _buildDrawerHeader() {
     return Container(

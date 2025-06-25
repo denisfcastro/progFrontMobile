@@ -34,25 +34,17 @@ class _CompanyFormPageState extends State<CompanyFormPage> {
     }
   }
 
-  /// **FUNÇÃO MELHORADA**
-  /// Esta função agora é mais robusta para interpretar diferentes tipos de erro do backend.
   String _parseErrorMessage(http.Response response) {
-    // Tenta primeiro decodificar o corpo da resposta como JSON.
     try {
       final decoded = jsonDecode(response.body);
-      // Se for um objeto JSON com a chave 'message' (padrão em muitas APIs).
       if (decoded is Map && decoded.containsKey('message')) {
         return decoded['message'];
       }
-      // Se for um objeto JSON com a chave 'error'.
       if (decoded is Map && decoded.containsKey('error')) {
         return decoded['error'];
       }
-      // Se for JSON mas não tiver uma chave conhecida, retorna o corpo original.
       return response.body;
     } catch (e) {
-      // Se a decodificação JSON falhar, significa que o corpo é texto simples.
-      // Retornamos o texto diretamente, pois é a mensagem de erro customizada.
       return response.body;
     }
   }
@@ -89,13 +81,11 @@ class _CompanyFormPageState extends State<CompanyFormPage> {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         _showSuccessDialog();
       } else {
-        // Usa a nova função para extrair a mensagem de erro corretamente.
         final errorMessage = _parseErrorMessage(response);
         _showErrorDialog(errorMessage);
       }
     } catch (e) {
       if (!mounted) return;
-      // Mensagem de erro mais específica para falhas de conexão.
       _showErrorDialog('Falha na comunicação com o servidor. Verifique sua conexão de rede e tente novamente.');
     } finally {
       if (mounted) {
